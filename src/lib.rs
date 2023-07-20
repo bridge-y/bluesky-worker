@@ -97,6 +97,17 @@ async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) ->
     match result {
         Ok(response) => match response.status() {
             StatusCode::OK => Response::ok(""),
+            _ => Response::error(
+                format!(
+                    "{}",
+                    response
+                        .status()
+                        .canonical_reason()
+                        .expect("REASON")
+                        .to_string()
+                ),
+                response.status().as_u16(),
+            ),
         },
         Err(_) => Response::error("Internal Server Error", 500),
     }
