@@ -6,20 +6,21 @@
 // use bisky::bluesky::Bluesky;
 // use bisky::lexicon::app::bsky::feed::Post;
 // use url::Url as OrgUrl;
-// use chrono;
-use reqwest::Client;
+use chrono;
+use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
 use worker::*;
 
 // https://atproto.com/lexicons/com-atproto-server#comatprotoservercreatesession
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Session {
     did: String,
     handle: String,
     email: String,
-    accessJwt: String,
-    refreshJwt: String,
+    access_jwt: String,
+    refresh_jwt: String,
 }
 
 #[event(fetch)]
@@ -33,7 +34,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         .post_async(&req_path, |mut req, ctx| async move {
             let username = ctx.secret("FULL_USERNAME")?.to_string();
             let password = ctx.secret("PASSWORD")?.to_string();
-            let url = "https://bsky.social";
+            let base_url = "https://bsky.social";
             //
             // let client =
             //     AtpServiceClient::new(Arc::new(ReqwestClient::new("https://bsky.social".into())));
@@ -61,13 +62,15 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
             //     .unwrap();
 
             let client = Client::new();
+
+            // https://atproto.com/lexicons/com-atproto-server#comatprotoservercreatesession
             let payload = json!({
                 "identifier": username,
                 "password": password
             });
 
             let result = client
-                .post(format!("{url}/xrpc/com.atproto.server.createSession"))
+                .post(format!("{base_url}/xrpc/com.atproto.server.createSession"))
                 .json(&payload)
                 .send()
                 .await;
@@ -81,14 +84,45 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
                 did,
                 handle,
                 email,
-                accessJwt,
-                refreshJwt,
+                access_jwt,
+                refresh_jwt,
             } = match res.json().await {
                 Ok(val) => val,
                 Err(_) => return Response::error("Bad Gateway", 502),
             };
-            Response::ok(accessJwt)
+
+            // https://atproto.com/lexicons/com-atproto-repo#comatprotorepocreaterecord
+            create_record(&access_jwt, &base_url, &handle, "post via my own client").await
         })
         .run(req, env)
         .await
+}
+
+async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) -> Result<Response> {
+    let url = format!("{base_url}/xrpc/com.atproto.repo.createRecord");
+    let payload = json!({
+        "repo": handle,
+        "collection": "app.bsky.feed.post",
+        "record": {
+            "text": text,
+            "createdAt": format!("{:?}", chrono::Utc::now()),
+        },
+    });
+    // Response::ok(format!("{:?}", payload))
+
+    let client = Client::new();
+    let result = client
+        .post(url)
+        .json(&payload)
+        .bearer_auth(&token)
+        .send()
+        .await;
+
+    match result {
+        Ok(response) => match response.status() {
+            StatusCode::OK => Response::ok(""),
+            _ => Response::error("Bad Request", 400),
+        },
+        Err(_) => Response::error("Internal Server Error", 500),
+    }
 }
