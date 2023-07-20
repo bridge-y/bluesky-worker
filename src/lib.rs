@@ -23,8 +23,13 @@ struct Session {
     refresh_jwt: String,
 }
 
+#[derive(Deserialize)]
+struct Content {
+    text: String,
+}
+
 #[event(fetch)]
-async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
+async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let sec_val = env.secret("REQUEST_PATH")?.to_string();
     let req_path = format!("/{}", sec_val);
 
@@ -60,6 +65,10 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
             //     })
             //     .await
             //     .unwrap();
+            let Content { text } = match req.json().await {
+                Ok(val) => val,
+                Err(_) => return Response::error("Bad reqest", 400),
+            };
 
             let client = Client::new();
 
@@ -81,18 +90,18 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
             };
 
             let Session {
-                did,
+                did: _,
                 handle,
-                email,
+                email: _,
                 access_jwt,
-                refresh_jwt,
+                refresh_jwt: _,
             } = match res.json().await {
                 Ok(val) => val,
                 Err(_) => return Response::error("Bad Gateway", 502),
             };
 
             // https://atproto.com/lexicons/com-atproto-repo#comatprotorepocreaterecord
-            create_record(&access_jwt, &base_url, &handle, "post via my own client").await
+            create_record(&access_jwt, &base_url, &handle, &text).await
         })
         .run(req, env)
         .await
