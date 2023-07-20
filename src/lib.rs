@@ -1,11 +1,3 @@
-// use atrium_api::client::AtpServiceClient;
-// use atrium_api::com::atproto::server::create_session::Input;
-// use atrium_xrpc::client::reqwest::ReqwestClient;
-// use std::sync::Arc;
-// use bisky::atproto::{Client, ClientBuilder, UserSession};
-// use bisky::bluesky::Bluesky;
-// use bisky::lexicon::app::bsky::feed::Post;
-// use url::Url as OrgUrl;
 use chrono;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
@@ -40,31 +32,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             let username = ctx.secret("FULL_USERNAME")?.to_string();
             let password = ctx.secret("PASSWORD")?.to_string();
             let base_url = "https://bsky.social";
-            //
-            // let client =
-            //     AtpServiceClient::new(Arc::new(ReqwestClient::new("https://bsky.social".into())));
-            // let result = client
-            //     .com
-            //     .atproto
-            //     .server
-            //     .create_session(Input {
-            //         identifier: username.clone().into(),
-            //         password: password.clone().into(),
-            //     })
-            //     .await;
 
-            // let mut client = ClientBuilder::default().session(None).build().unwrap();
-            // client.login(&url, &username, &password).await;
-            // let mut bsky = Bluesky::new(client);
-            // let result = bsky
-            //     .me()
-            //     .unwrap()
-            //     .post(Post {
-            //         text: "test".into(),
-            //         created_at: chrono::UTC::now(),
-            //     })
-            //     .await
-            //     .unwrap();
             let Content { text } = match req.json().await {
                 Ok(val) => val,
                 Err(_) => return Response::error("Bad reqest", 400),
@@ -117,7 +85,6 @@ async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) ->
             "createdAt": format!("{:?}", chrono::Utc::now()),
         },
     });
-    // Response::ok(format!("{:?}", payload))
 
     let client = Client::new();
     let result = client
@@ -130,7 +97,6 @@ async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) ->
     match result {
         Ok(response) => match response.status() {
             StatusCode::OK => Response::ok(""),
-            _ => Response::error("Bad Request", 400),
         },
         Err(_) => Response::error("Internal Server Error", 500),
     }
