@@ -103,7 +103,7 @@ async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) ->
                     response
                         .status()
                         .canonical_reason()
-                        .expect("REASON")
+                        .expect("fail to get reason phrase")
                         .to_string()
                 ),
                 response.status().as_u16(),
