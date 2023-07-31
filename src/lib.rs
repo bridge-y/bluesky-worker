@@ -1,4 +1,5 @@
 use chrono;
+use html2text::{from_read_with_decorator, render::text_renderer::RichDecorator};
 use regex::Regex;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -71,8 +72,11 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 Err(_) => return Response::error("Bad reqest", 400),
             };
 
+            // extract plain text
+            let parsed_text = from_read_with_decorator(text.as_bytes(), 80, RichDecorator::new());
+
             // expected plain text
-            let factes = make_facets(&text);
+            let factes = make_facets(&parsed_text);
 
             let client = Client::new();
 
@@ -105,13 +109,19 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             };
 
             // https://atproto.com/lexicons/com-atproto-repo#comatprotorepocreaterecord
-            create_record(&access_jwt, &base_url, &handle, &text, factes).await
+            create_record(&access_jwt, &base_url, &handle, &parsed_text, factes).await
         })
         .run(req, env)
         .await
 }
 
-async fn create_record(token: &str, base_url: &str, handle: &str, text: &str, facets: Vec<FacetsMain>) -> Result<Response> {
+async fn create_record(
+    token: &str,
+    base_url: &str,
+    handle: &str,
+    text: &str,
+    facets: Vec<FacetsMain>,
+) -> Result<Response> {
     let url = format!("{base_url}/xrpc/com.atproto.repo.createRecord");
     let payload = json!({
         "repo": handle,
@@ -164,7 +174,9 @@ fn make_facets(text: &str) -> Vec<FacetsMain> {
                 byte_start: start,
                 byte_end: end,
             },
-            features: vec![FeatureItem::Link(Link { uri: matched_text.to_string() })],
+            features: vec![FeatureItem::Link(Link {
+                uri: matched_text.to_string(),
+            })],
         })
     }
 
