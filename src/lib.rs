@@ -54,6 +54,12 @@ struct Link {
     uri: String,
 }
 
+fn is_html(input: &str) -> bool {
+    // simple regex to check html format
+    let re = Regex::new(r"<[^>]*>").unwrap();
+    re.is_match(input)
+}
+
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let sec_val = env.secret("REQUEST_PATH")?.to_string();
@@ -67,16 +73,20 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             let password = ctx.secret("PASSWORD")?.to_string();
             let base_url = "https://bsky.social";
 
-            let Content { text } = match req.json().await {
+            let Content { mut text } = match req.json().await {
                 Ok(val) => val,
                 Err(_) => return Response::error("Bad reqest", 400),
             };
 
             // extract plain text
-            let parsed_text = from_read_with_decorator(text.as_bytes(), 80, RichDecorator::new());
+            if is_html(&text) {
+                console_log!("This is html!");
+                text = from_read_with_decorator(text.as_bytes(), 80, RichDecorator::new());
+            }
+            console_log!("{text}");
 
             // expected plain text
-            let factes = make_facets(&parsed_text);
+            let factes = make_facets(&text);
 
             let client = Client::new();
 
@@ -109,7 +119,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             };
 
             // https://atproto.com/lexicons/com-atproto-repo#comatprotorepocreaterecord
-            create_record(&access_jwt, &base_url, &handle, &parsed_text, factes).await
+            create_record(&access_jwt, &base_url, &handle, &text, factes).await
         })
         .run(req, env)
         .await
