@@ -1,6 +1,7 @@
 use chrono;
+use regex::Regex;
 use reqwest::{Client, StatusCode};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use worker::*;
 
@@ -20,6 +21,38 @@ struct Content {
     text: String,
 }
 
+#[derive(Serialize)]
+struct FacetsMain {
+    index: ByteSlice,
+    features: Vec<FeatureItem>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ByteSlice {
+    byte_start: i32,
+    byte_end: i32,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "$type")]
+enum FeatureItem {
+    #[serde(rename = "app.bsky.richtext.facet#mention")]
+    Mention(Mention),
+    #[serde(rename = "app.bsky.richtext.facet#link")]
+    Link(Link),
+}
+
+#[derive(Serialize)]
+struct Mention {
+    did: String,
+}
+
+#[derive(Serialize)]
+struct Link {
+    uri: String,
+}
+
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let sec_val = env.secret("REQUEST_PATH")?.to_string();
@@ -37,6 +70,9 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 Ok(val) => val,
                 Err(_) => return Response::error("Bad reqest", 400),
             };
+
+            // expected plain text
+            let factes = make_facets(&text);
 
             let client = Client::new();
 
@@ -69,19 +105,20 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             };
 
             // https://atproto.com/lexicons/com-atproto-repo#comatprotorepocreaterecord
-            create_record(&access_jwt, &base_url, &handle, &text).await
+            create_record(&access_jwt, &base_url, &handle, &text, factes).await
         })
         .run(req, env)
         .await
 }
 
-async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) -> Result<Response> {
+async fn create_record(token: &str, base_url: &str, handle: &str, text: &str, facets: Vec<FacetsMain>) -> Result<Response> {
     let url = format!("{base_url}/xrpc/com.atproto.repo.createRecord");
     let payload = json!({
         "repo": handle,
         "collection": "app.bsky.feed.post",
         "record": {
             "text": text,
+            "facets": Some(facets),
             "createdAt": format!("{:?}", chrono::Utc::now()),
         },
     });
@@ -111,4 +148,25 @@ async fn create_record(token: &str, base_url: &str, handle: &str, text: &str) ->
         },
         Err(_) => Response::error("Internal Server Error", 500),
     }
+}
+
+fn make_facets(text: &str) -> Vec<FacetsMain> {
+    let url_pattern = r"https?://\S+";
+    let url_regex = Regex::new(url_pattern).unwrap();
+
+    let mut facets: Vec<FacetsMain> = vec![];
+    for mat in url_regex.find_iter(text) {
+        let (start, end) = (mat.start() as i32, mat.end() as i32);
+        let matched_text = mat.as_str();
+
+        facets.push(FacetsMain {
+            index: ByteSlice {
+                byte_start: start,
+                byte_end: end,
+            },
+            features: vec![FeatureItem::Link(Link { uri: matched_text.to_string() })],
+        })
+    }
+
+    facets
 }
