@@ -1,6 +1,6 @@
 [package]
 name = "bluesky-worker"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 
 # https://github.com/rustwasm/wasm-pack/issues/1247
