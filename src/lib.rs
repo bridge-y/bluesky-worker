@@ -137,7 +137,7 @@ async fn create_record(
         "repo": handle,
         "collection": "app.bsky.feed.post",
         "record": {
-            "text": text,
+            "text": text.to_string().trim(),
             "facets": Some(facets),
             "createdAt": format!("{:?}", chrono::Utc::now()),
         },
