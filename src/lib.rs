@@ -81,7 +81,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             // extract plain text
             if is_html(&text) {
                 console_log!("This is html!");
-                text = from_read_with_decorator(text.as_bytes(), 80, RichDecorator::new());
+                text = from_read_with_decorator(text.as_bytes(), 500, RichDecorator::new());
             }
             console_log!("{text}");
 
