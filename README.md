@@ -11,28 +11,11 @@ Bluesky Worker is a Cloudflare Workers application that allows seamless posting 
 
 ## Setup
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bridge-y/bluesky-worker)
+1. Click the button below and follow the on-screen instructions to proceed with the setup.
 
-1. Create your project by clicking on `Use this template` button (or fork this repository) and clone into your local host.
+   [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bridge-y/bluesky-worker)
 
-2. Execute the following commands.
-
-   ```bash
-   npx wrangler dev
-
-   # deploy your worker globally to Cloudflare Workers.
-   npx wrangler publish
-   ```
-
-3. Set up the required secrets.
-
-   Execute the following command:
-
-   ```bash
-   npx wrangler put <secret>
-   ```
-
-   Secrets:
+2. Within the Cloudflare Workers dashboard, register the following secrets as variables.
 
    - `REQUEST_PATH`: A randomly generated value.
    - `FULL_USERNAME`: Your Bluesky handle (e.g. \<hoge\>.bluesky.social).
