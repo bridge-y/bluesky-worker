@@ -11,6 +11,8 @@ Bluesky Worker is a Cloudflare Workers application that allows seamless posting 
 
 ## Setup
 
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bridge-y/bluesky-worker)
+
 1. Create your project by clicking on `Use this template` button (or fork this repository) and clone into your local host.
 
 2. Execute the following commands.

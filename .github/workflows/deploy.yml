@@ -7,12 +7,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SCCACHE_CACHE_SIZE: 1G
+      CARGO_INCREMENTAL: true
     steps:
       - uses: actions/checkout@v3
       - name: rust sccache
         uses: pl-strflt/rust-sccache-action@v1.1.1
-        with:
-          SCCACHE_CACHE_SIZE: 1G
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Build & Deploy Worker
