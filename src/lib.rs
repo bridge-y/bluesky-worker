@@ -154,7 +154,7 @@ async fn create_record(
     let result = client
         .post(url)
         .json(&payload)
-        .bearer_auth(&token)
+        .bearer_auth(token)
         .send()
         .await;
 
