@@ -42,6 +42,8 @@ enum FeatureItem {
     Mention(Mention),
     #[serde(rename = "app.bsky.richtext.facet#link")]
     Link(Link),
+    #[serde(rename = "app.bsky.richtext.facet#tag")]
+    Tag(Tag),
 }
 
 #[derive(Serialize)]
@@ -52,6 +54,11 @@ struct Mention {
 #[derive(Serialize)]
 struct Link {
     uri: String,
+}
+
+#[derive(Serialize)]
+struct Tag {
+    tag: String,
 }
 
 fn is_html(input: &str) -> bool {
@@ -171,6 +178,7 @@ async fn create_record(
 }
 
 fn make_facets(text: &str) -> Vec<FacetsMain> {
+    // url
     let url_pattern = r"https?://\S+";
     let url_regex = Regex::new(url_pattern).unwrap();
 
@@ -186,6 +194,25 @@ fn make_facets(text: &str) -> Vec<FacetsMain> {
             },
             features: vec![FeatureItem::Link(Link {
                 uri: matched_text.to_string(),
+            })],
+        })
+    }
+
+    // tag
+    let tag_pattern = r"#\S+";
+    let tag_regex = Regex::new(tag_pattern).unwrap();
+
+    for mat in tag_regex.find_iter(text) {
+        let (start, end) = (mat.start() as i32, mat.end() as i32);
+        let matched_text = mat.as_str();
+
+        facets.push(FacetsMain {
+            index: ByteSlice {
+                byte_start: start,
+                byte_end: end,
+            },
+            features: vec![FeatureItem::Tag(Tag {
+                tag: matched_text.to_string(),
             })],
         })
     }
