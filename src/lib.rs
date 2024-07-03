@@ -212,7 +212,11 @@ fn make_facets(text: &str) -> Vec<FacetsMain> {
                 byte_end: end,
             },
             features: vec![FeatureItem::Tag(Tag {
-                tag: matched_text.to_string(),
+                tag: matched_text
+                    .to_string()
+                    .strip_prefix('#')
+                    .expect("no prefix")
+                    .to_string(),
             })],
         })
     }
