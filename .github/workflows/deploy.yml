@@ -10,13 +10,13 @@ jobs:
     env:
       SCCACHE_CACHE_SIZE: 1G
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: rust sccache
-        uses: pl-strflt/rust-sccache-action@v1.1.1
+        uses: mozilla-actions/sccache-action@v0.0.7
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Build & Deploy Worker
-        uses: cloudflare/wrangler-action@v3.1.0
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}

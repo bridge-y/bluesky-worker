@@ -1,5 +1,4 @@
-use chrono;
-use html2text::{from_read_with_decorator, render::text_renderer::RichDecorator};
+use html2text::{from_read_with_decorator, render::RichDecorator};
 use regex::Regex;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -88,7 +87,8 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             // extract plain text
             if is_html(&text) {
                 console_log!("This is html!");
-                text = from_read_with_decorator(text.as_bytes(), 500, RichDecorator::new());
+                text = from_read_with_decorator(text.as_bytes(), 500, RichDecorator::new())
+                    .expect("fail to get text.");
             }
             console_log!("{text}");
 
@@ -162,14 +162,11 @@ async fn create_record(
         Ok(response) => match response.status() {
             StatusCode::OK => Response::ok(""),
             _ => Response::error(
-                format!(
-                    "{}",
-                    response
-                        .status()
-                        .canonical_reason()
-                        .expect("fail to get reason phrase")
-                        .to_string()
-                ),
+                response
+                    .status()
+                    .canonical_reason()
+                    .expect("fail to get reason phrase")
+                    .to_string(),
                 response.status().as_u16(),
             ),
         },
